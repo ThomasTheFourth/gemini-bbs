@@ -1,0 +1,9 @@
+default: &default
+  adapter: sqlite3
+  encoding: unicode
+  pool: 5
+  host: localhost
+
+development:
+  <<: *default
+  database: gemini
