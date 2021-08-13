@@ -28,12 +28,12 @@
      puts "User disconnected"
    end
 
-   def event_router data
+   def event_router(arg1 = nil, arg2 = nil)
     unless @event["eventType"].nil?
       case @event["eventType"]
       when "question"
-        data = data.upcase.gsub("\r\n", "")
-        self.send(@event["eventTarget"], data)
+        arg1 = arg1.gsub("\r\n", "")
+        self.send(@event["eventTarget"], arg1, arg2)
       end
     end
    end
@@ -50,7 +50,7 @@
     login
    end
 
-   def login(name = nil)
+   def login(name = nil, arg2 = nil)
     if name.to_s.empty?
       send_data "Please enter User Name or 'New'\n"
       prompt("Login: ", :login)
@@ -59,13 +59,29 @@
       if user.nil?
         send_data "Username not found\n"
         prompt("Login: ", :login)
+      else
+        login_password(name)
+      end
+    end
+   end
+
+   def login_password(name, password = nil)
+    if password.to_s.empty?
+      prompt("Password: ", :login_password)
+    else 
+      user = User.find_by(name: name, password: password)
+
+      if user.nil?
+        send_data "Invalid login\n"
+        login
+      else
+        main_menu
       end
     end
    end
    
 end
 
-# Note that this will block current thread.
 puts "Starting BBS"
 EventMachine.run {
   EventMachine.start_server "127.0.0.1", 8080, BBSServer
