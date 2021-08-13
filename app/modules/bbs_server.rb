@@ -11,6 +11,7 @@
    def post_init
      puts "Inbound connection"
      @event = {}
+     @username = ""
      welcome
    end
 
@@ -28,12 +29,12 @@
      puts "User disconnected"
    end
 
-   def event_router(arg1 = nil, arg2 = nil)
+   def event_router(data = nil)
     unless @event["eventType"].nil?
       case @event["eventType"]
       when "question"
-        arg1 = arg1.gsub("\r\n", "")
-        self.send(@event["eventTarget"], arg1, arg2)
+        data = data.gsub("\r\n", "")
+        self.send(@event["eventTarget"], data)
       end
     end
    end
@@ -50,34 +51,41 @@
     login
    end
 
-   def login(name = nil, arg2 = nil)
+   def login(name = nil)
     if name.to_s.empty?
       send_data "Please enter User Name or 'New'\n"
       prompt("Login: ", :login)
     else 
       user = User.find_by(name: name)
       if user.nil?
-        send_data "Username not found\n"
+        send_data "Username not found\n\n"
         prompt("Login: ", :login)
       else
-        login_password(name)
+        @username = name
+        login_password
       end
     end
    end
 
-   def login_password(name, password = nil)
+   def login_password(password = nil)
     if password.to_s.empty?
       prompt("Password: ", :login_password)
     else 
-      user = User.find_by(name: name, password: password)
-
+      user = User.find_by(name: @username, password: password)
       if user.nil?
-        send_data "Invalid login\n"
+        send_data "Invalid login\n\n"
         login
       else
         main_menu
       end
     end
+   end
+
+   def main_menu
+    send_data "\n"
+    send_data "Main Menu:\n"
+    send_data "(M)essage Boards\n"
+    send_data "(G)oodbye\n"
    end
    
 end
