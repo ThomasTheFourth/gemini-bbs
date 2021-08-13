@@ -38,6 +38,7 @@ GEM
     database_cleaner-core (2.0.1)
     diff-lcs (1.4.4)
     erubi (1.10.0)
+    eventmachine (1.2.7)
     factory_girl (4.9.0)
       activesupport (>= 3.0.0)
     i18n (1.8.10)
@@ -99,6 +100,7 @@ DEPENDENCIES
   activerecord
   byebug
   database_cleaner
+  eventmachine
   factory_girl
   pry
   rake

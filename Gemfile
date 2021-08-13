@@ -11,3 +11,4 @@ gem "rake"
 gem "rspec"
 gem 'standalone_migrations'
 gem "sqlite3"
+gem "eventmachine"
