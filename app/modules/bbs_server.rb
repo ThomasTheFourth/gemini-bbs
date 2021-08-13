@@ -12,6 +12,7 @@
      puts "Inbound connection"
      @event = {}
      @username = ""
+     @password = ""
      welcome
    end
 
@@ -52,7 +53,9 @@
    end
 
    def login(name = nil)
-    if name.to_s.empty?
+    if name.to_s.upcase === "NEW"
+      new_user
+    elsif name.to_s.empty?
       send_data "Please enter User Name or 'New'\n"
       prompt("Login: ", :login)
     else 
@@ -80,6 +83,49 @@
       end
     end
    end
+
+
+   def new_user(name = nil)
+    if name.nil?
+      prompt("Username: ", :new_user)
+    elsif name.to_s.empty?
+      send_data "Username cannot be blank\n"
+      prompt("Username: ", :new_user)
+    else 
+      user = User.find_by(name: name)
+      if user
+        send_data "Username is already taken\n\n"
+        prompt("Username: ", :new_user)
+      else
+        @username = name
+        new_password
+      end
+    end
+  end
+
+  def new_password(password = nil)
+    if password.nil?
+      prompt("New Password: ", :new_password)
+    elsif password.to_s.empty?
+      send_data "Password cannot be blank\n"
+      prompt("Password: ", :new_password)
+    else 
+        @password = password
+        new_password_confirmation
+      end
+    end
+
+   def new_password_confirmation(password = nil)
+    if password.nil?
+      prompt("Confirm Password: ", :new_password_confirmation)
+    elsif password != @password
+      send_data "Passwords do not match\n"
+      new_password
+    else 
+        User.create(name: @username, password: @password)
+        main_menu
+      end
+    end
 
    def main_menu
     send_data "\n"
