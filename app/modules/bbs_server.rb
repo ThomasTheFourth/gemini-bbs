@@ -95,7 +95,7 @@
       user = User.find_by(name: name)
       if user
         send_data "Username is already taken\n\n"
-        prompt("Username: ", :new_user)
+        new_user
       else
         @username = name
         new_password
@@ -108,12 +108,12 @@
       prompt("New Password: ", :new_password)
     elsif password.to_s.empty?
       send_data "Password cannot be blank\n"
-      prompt("Password: ", :new_password)
+      new_password
     else 
-        @password = password
-        new_password_confirmation
-      end
+      @password = password
+      new_password_confirmation
     end
+  end
 
    def new_password_confirmation(password = nil)
     if password.nil?
@@ -127,13 +127,53 @@
       end
     end
 
-   def main_menu
-    send_data "\n"
-    send_data "Main Menu:\n"
-    send_data "(M)essage Boards\n"
-    send_data "(G)oodbye\n"
-   end
-   
+   def main_menu(command = nil)
+    if command.nil?
+      send_data "\n"
+      send_data "Main Menu:\n"
+      send_data "(M)essage Boards\n"
+      send_data "(G)oodbye\n"
+      prompt("Command: ", :main_menu)
+    else
+      case command.upcase
+        when "M"
+          message_menu
+        when "G"
+          send_data "Goodbye\n"
+          close_connection
+        else
+          send_data "Unrecognized Command\n"
+          main_menu
+      end
+    end
+  end
+   def message_menu(command = nil)
+    if command.nil?
+      send_data "\n"
+      send_data "Message Board:\n"
+      send_data "Current Board: none\n"
+      send_data "(L)ist Boards\n"
+      send_data "(R)ead Messages\n"
+      send_data "(M)ain Menu\n"
+      send_data "(G)oodbye\n"
+      prompt("Command: ", :message_menu)
+    else
+      case command.upcase
+        when "M"
+          main_menu
+        when "G"
+          send_data "Goodbye\n"
+          close_connection
+        when "L"
+          send_data "List Boards\n"
+        when "R"
+          send_data "Read Messages\n"
+        else
+          send_data "Unrecognized Command\n"
+          message_menu
+      end
+    end
+  end
 end
 
 puts "Starting BBS"
