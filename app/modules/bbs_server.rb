@@ -1,10 +1,4 @@
- require 'eventmachine'
- require 'active_record'
- require_relative './../models/user'
- db_configuration_file_path = './db/config.yml'
- db_configuration = YAML.load(File.read(db_configuration_file_path))
-
- ActiveRecord::Base.establish_connection(db_configuration["development"])
+require_relative './bootstrap.rb'
 
  module BBSServer
    
@@ -147,7 +141,38 @@
       end
     end
   end
-   def message_menu(command = nil)
+
+  def list_message_boards(command = nil)
+    message_boards = MessageBoard.all
+    if command.nil?
+      send_data "\n"
+      send_data "Message Boards:\n"
+      message_boards.each_with_index do |board, index|
+        send_data "(#{index + 1}) #{board.name}\n"
+      end
+      prompt("Select Active Message Board: ", :list_message_boards)
+    else
+
+      # case command.upcase
+        # when "M"
+        #   main_menu
+        # when "G"
+        #   send_data "Goodbye\n"
+        #   close_connection
+        # when "L"
+        #   send_data "List Boards\n"
+        #   list_message_board
+        # when "R"
+        #   send_data "Read Messages\n"
+        # else
+        #   send_data "Unrecognized Command\n"
+        #   message_menu
+      # end
+    end
+
+  end
+
+  def message_menu(command = nil)
     if command.nil?
       send_data "\n"
       send_data "Message Board:\n"
@@ -166,6 +191,7 @@
           close_connection
         when "L"
           send_data "List Boards\n"
+          list_message_boards
         when "R"
           send_data "Read Messages\n"
         else
