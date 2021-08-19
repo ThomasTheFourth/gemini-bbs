@@ -7,6 +7,7 @@ require_relative './bootstrap.rb'
      @event = {}
      @username = ""
      @password = ""
+     @message_board = nil
      welcome
    end
 
@@ -151,23 +152,9 @@ require_relative './bootstrap.rb'
         send_data "(#{index + 1}) #{board.name}\n"
       end
       prompt("Select Active Message Board: ", :list_message_boards)
-    else
-
-      # case command.upcase
-        # when "M"
-        #   main_menu
-        # when "G"
-        #   send_data "Goodbye\n"
-        #   close_connection
-        # when "L"
-        #   send_data "List Boards\n"
-        #   list_message_board
-        # when "R"
-        #   send_data "Read Messages\n"
-        # else
-        #   send_data "Unrecognized Command\n"
-        #   message_menu
-      # end
+    elsif (is_numeric(command))
+      @message_board = message_boards[command.to_i - 1]
+      message_menu
     end
 
   end
@@ -176,7 +163,7 @@ require_relative './bootstrap.rb'
     if command.nil?
       send_data "\n"
       send_data "Message Board:\n"
-      send_data "Current Board: none\n"
+      send_data "Current Board: #{@message_board.nil? ? "none" : @message_board.name}\n"
       send_data "(L)ist Boards\n"
       send_data "(R)ead Messages\n"
       send_data "(M)ain Menu\n"
@@ -195,11 +182,15 @@ require_relative './bootstrap.rb'
         when "R"
           send_data "Read Messages\n"
         else
-          send_data "Unrecognized Command\n"
+          send_data "\nUnrecognized Command\n"
           message_menu
       end
     end
   end
+end
+
+def is_numeric(o)
+  true if Integer(o) rescue false
 end
 
 puts "Starting BBS"
