@@ -1,6 +1,7 @@
 # Gemini BBS
 
 A simple telnet BBS server written in Ruby.
+Very much a WIP.
 
 ## Installation
 
