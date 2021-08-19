@@ -10,10 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_08_16_191258) do
+ActiveRecord::Schema.define(version: 2021_08_19_140539) do
 
   create_table "message_boards", force: :cascade do |t|
     t.string "name"
+  end
+
+  create_table "messages", force: :cascade do |t|
+    t.string "title"
   end
 
   create_table "users", force: :cascade do |t|
