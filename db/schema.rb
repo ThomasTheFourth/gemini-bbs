@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_08_27_194853) do
+ActiveRecord::Schema.define(version: 2021_08_27_195837) do
 
   create_table "message_boards", force: :cascade do |t|
     t.string "name"
@@ -19,6 +19,7 @@ ActiveRecord::Schema.define(version: 2021_08_27_194853) do
   create_table "messages", force: :cascade do |t|
     t.string "title"
     t.date "created_on"
+    t.integer "message_board_id"
   end
 
   create_table "users", force: :cascade do |t|
