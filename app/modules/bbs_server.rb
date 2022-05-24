@@ -159,6 +159,24 @@ require_relative './bootstrap.rb'
 
   end
 
+  def list_messages(command = nil)
+    messages = Message.where(message_board: @message_board)
+    if command.nil?
+      send_data "\n"
+      messages.each_with_index do |message, index|
+        send_data "(#{index + 1}) #{message.title}\n"
+      end
+      prompt("Select Message or (Q)uit:", :list_messages)
+    elsif (is_numeric(command))
+      display_message(messages[command])
+    elsif command.upcase === "Q"
+      message_menu
+    else
+      send_data "Unrecognized Command\n"
+      list_messages
+    end
+  end
+
   def message_menu(command = nil)
     if command.nil?
       send_data "\n"
@@ -181,6 +199,7 @@ require_relative './bootstrap.rb'
           list_message_boards
         when "R"
           send_data "Read Messages\n"
+          list_messages
         else
           send_data "\nUnrecognized Command\n"
           message_menu

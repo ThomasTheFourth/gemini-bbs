@@ -6,4 +6,4 @@ default: &default
 
 development:
   <<: *default
-  database: gemini
+  database: db/gemini
