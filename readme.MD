@@ -1,7 +1,6 @@
 # Gemini BBS
 
-A simple telnet BBS server written in Ruby.
-Very much a WIP.
+A very simple BBS written in Ruby created to be forked and built on.
 
 ## Installation
 
@@ -9,7 +8,6 @@ Very much a WIP.
 bundle install
 rake db:create
 rake db:migrate
-rake db:create
 ruby app/modules/bbs_server.rb
 ```
 
