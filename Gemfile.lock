@@ -36,6 +36,10 @@ GEM
       database_cleaner-core (~> 2.0.0)
     database_cleaner-core (2.0.1)
     diff-lcs (1.5.0)
+    dotenv (2.7.6)
+    dotenv-rails (2.7.6)
+      dotenv (= 2.7.6)
+      railties (>= 3.2)
     erubi (1.10.0)
     eventmachine (1.2.7)
     factory_girl (4.9.0)
@@ -52,6 +56,7 @@ GEM
     pry (0.14.1)
       coderay (~> 1.1)
       method_source (~> 1.0)
+    psych (3.3.2)
     racc (1.6.0)
     rack (2.2.3)
     rack-test (1.1.0)
@@ -99,16 +104,18 @@ DEPENDENCIES
   activerecord
   byebug
   database_cleaner
+  dotenv-rails
   eventmachine
   factory_girl
   pry
+  psych (< 4)
   rake
   rspec
   sqlite3
   standalone_migrations
 
 RUBY VERSION
-   ruby 3.1.2p20
+   ruby 3.0.3p157
 
 BUNDLED WITH
    2.3.7
