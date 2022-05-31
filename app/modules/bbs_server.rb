@@ -207,6 +207,6 @@ end
 
 puts "Starting BBS"
 EventMachine.run {
-  EventMachine.start_server "127.0.0.1", 8080, BBSServer
+  EventMachine.start_server "127.0.0.1", ENV.fetch('PORT'), BBSServer
 }
 puts "Stopping BBS"
