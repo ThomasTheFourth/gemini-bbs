@@ -11,6 +11,7 @@ gem "pry"
 gem "rake"
 gem "rspec"
 gem 'standalone_migrations'
+gem 'active_record_migrations'
 gem "sqlite3"
 gem "eventmachine"
 gem 'psych', '< 4'
