@@ -1,2 +1,2 @@
-.env
-db/gemini
+node_modules
+dist
