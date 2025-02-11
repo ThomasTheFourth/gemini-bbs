@@ -14,7 +14,7 @@ const server = net.createServer(socket => {
 	const env = {
 		...process.env,
 		FORCE_COLOR: '1',
-		COLUMNS: '500',
+		COLUMNS: '80',
 		LINES: '30',
 	};
 

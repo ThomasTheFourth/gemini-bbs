@@ -6,13 +6,13 @@ import BigText from 'ink-big-text';
 export default function App() {
   return (
 		<>
-			<Box width={500} flexDirection='column'>
+			<Box flexDirection='column'>
 				<Text color="cyan">
 					{'\n'} ---------------------------------------------------
 				</Text>
 				<Text color="green">
 					{' '}
-					Gemini BBS software version <Text color="magentca">1.01beta</Text>
+					Gemini BBS software version <Text color="magenta">1.01beta</Text>
 				</Text>
 				<Text color="cyan">
 					{' '}
