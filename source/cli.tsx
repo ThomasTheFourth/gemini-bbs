@@ -6,9 +6,12 @@ import {createSession} from './session.js';
 import {createBBSServer} from './server.js';
 import {TeeStream} from './tee-stream.js';
 import {initDb} from './db.js';
+import {loadConfig, getConfig} from './config.js';
 import type {Connection, LogEntry} from './types.js';
 
-const PORT = 23;
+// Load config before anything else
+const config = loadConfig();
+const PORT = config.port;
 
 // --- Module-level state (survives Ink unmount/remount) ---
 
@@ -107,7 +110,6 @@ function exitSpyMode(): void {
 
 function AdminWrapper() {
   return React.createElement(Admin, {
-    port: PORT,
     connections,
     log,
     onSpyConnection: enterSpyMode,
@@ -122,6 +124,14 @@ initDb();
 
 const server = createBBSServer({
   onConnect(connection, socket) {
+    // Enforce max nodes
+    if (connections.length >= getConfig().maxNodes) {
+      socket.write('\r\nSorry, all nodes are busy. Please try again later.\r\n');
+      socket.end();
+      addLog(`Rejected connection from ${connection.remoteAddress} (max nodes reached)`);
+      return;
+    }
+
     connections = [...connections, connection];
 
     const teeStream = new TeeStream();

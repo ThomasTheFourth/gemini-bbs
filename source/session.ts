@@ -1,5 +1,6 @@
 import {authenticateUser, createUser, getUser} from './db.js';
 import {VERSION} from './version.js';
+import {getConfig} from './config.js';
 import type {Connection} from './types.js';
 import type {Writable} from 'node:stream';
 
@@ -8,12 +9,194 @@ const CLEAR = '\x1b[2J\x1b[H';
 const RESET = '\x1b[0m';
 const BOLD = '\x1b[1m';
 const DIM = '\x1b[2m';
-const RED = '\x1b[31m';
-const GREEN = '\x1b[32m';
-const YELLOW = '\x1b[33m';
-const BLUE = '\x1b[34m';
-const MAGENTA = '\x1b[35m';
-const CYAN = '\x1b[36m';
+const RED = '\x1b[91m';       // bright red
+const GREEN = '\x1b[92m';     // bright green
+const YELLOW = '\x1b[93m';    // bright yellow
+const MAGENTA = '\x1b[95m';   // bright magenta
+const CYAN = '\x1b[96m';      // bright cyan
+const WHITE = '\x1b[97m';     // bright white
+
+// Font type
+type FontMap = Record<string, string[]>;
+
+// ── Block: solid filled characters ──
+const FONT_BLOCK: FontMap = {
+  A: ['  █  ', ' █ █ ', '█████', '█   █', '█   █'],
+  B: ['████ ', '█   █', '████ ', '█   █', '████ '],
+  C: [' ████', '█    ', '█    ', '█    ', ' ████'],
+  D: ['████ ', '█   █', '█   █', '█   █', '████ '],
+  E: ['█████', '█    ', '████ ', '█    ', '█████'],
+  F: ['█████', '█    ', '████ ', '█    ', '█    '],
+  G: [' ████', '█    ', '█  ██', '█   █', ' ████'],
+  H: ['█   █', '█   █', '█████', '█   █', '█   █'],
+  I: ['█████', '  █  ', '  █  ', '  █  ', '█████'],
+  J: ['█████', '   █ ', '   █ ', '█  █ ', ' ██  '],
+  K: ['█   █', '█  █ ', '███  ', '█  █ ', '█   █'],
+  L: ['█    ', '█    ', '█    ', '█    ', '█████'],
+  M: ['█   █', '██ ██', '█ █ █', '█   █', '█   █'],
+  N: ['█   █', '██  █', '█ █ █', '█  ██', '█   █'],
+  O: [' ███ ', '█   █', '█   █', '█   █', ' ███ '],
+  P: ['████ ', '█   █', '████ ', '█    ', '█    '],
+  Q: [' ███ ', '█   █', '█ █ █', '█  █ ', ' ██ █'],
+  R: ['████ ', '█   █', '████ ', '█  █ ', '█   █'],
+  S: [' ████', '█    ', ' ███ ', '    █', '████ '],
+  T: ['█████', '  █  ', '  █  ', '  █  ', '  █  '],
+  U: ['█   █', '█   █', '█   █', '█   █', ' ███ '],
+  V: ['█   █', '█   █', '█   █', ' █ █ ', '  █  '],
+  W: ['█   █', '█   █', '█ █ █', '██ ██', '█   █'],
+  X: ['█   █', ' █ █ ', '  █  ', ' █ █ ', '█   █'],
+  Y: ['█   █', ' █ █ ', '  █  ', '  █  ', '  █  '],
+  Z: ['█████', '   █ ', '  █  ', ' █   ', '█████'],
+  ' ': ['     ', '     ', '     ', '     ', '     '],
+};
+
+// ── Shadow: block with shadow effect ──
+const FONT_SHADOW: FontMap = {
+  A: ['  ▄  ', ' █▀█ ', '█▀▀█▌', '█  █▌', '▀  ▀ '],
+  B: ['▄▄▄ ', '█▀▀█▌', '█▀▀█▌', '█▄▄█▌', ' ▀▀▀ '],
+  C: [' ▄▄▄', '█▀   ', '█    ', '█▄   ', ' ▀▀▀ '],
+  D: ['▄▄▄ ', '█▀▀█▌', '█  █▌', '█▄▄█▌', ' ▀▀▀ '],
+  E: ['▄▄▄▄', '█▀   ', '█▀▀  ', '█▄▄▄', ' ▀▀▀ '],
+  F: ['▄▄▄▄', '█▀   ', '█▀▀  ', '█    ', '▀    '],
+  G: [' ▄▄▄', '█▀   ', '█ ▀█▌', '█▄▄█▌', ' ▀▀▀ '],
+  H: ['▄  ▄', '█  █▌', '█▀▀█▌', '█  █▌', '▀  ▀ '],
+  I: ['▄▄▄▄', ' █▌  ', ' █▌  ', ' █▌  ', '▀▀▀▀ '],
+  J: ['▄▄▄▄', '  █▌ ', '  █▌ ', '█▄█▌ ', ' ▀▀  '],
+  K: ['▄  ▄', '█ █▌ ', '██▌  ', '█ █▌ ', '▀  ▀ '],
+  L: ['▄    ', '█    ', '█    ', '█▄▄▄', ' ▀▀▀ '],
+  M: ['▄   ▄', '██▄██', '█ █ █', '█   █', '▀   ▀'],
+  N: ['▄   ▄', '██  █', '█ █ █', '█  ██', '▀   ▀'],
+  O: [' ▄▄ ', '█▀▀█▌', '█  █▌', '█▄▄█▌', ' ▀▀  '],
+  P: ['▄▄▄ ', '█▀▀█▌', '█▀▀▀ ', '█    ', '▀    '],
+  Q: [' ▄▄ ', '█▀▀█▌', '█ █▌ ', '█▄▀█▌', ' ▀▀▀ '],
+  R: ['▄▄▄ ', '█▀▀█▌', '█▀▀█▌', '█  █▌', '▀  ▀ '],
+  S: [' ▄▄▄', '█▀   ', ' ▀▀▄ ', '  ▄█▌', '▀▀▀  '],
+  T: ['▄▄▄▄', ' █▌  ', ' █▌  ', ' █▌  ', ' ▀   '],
+  U: ['▄  ▄', '█  █▌', '█  █▌', '█▄▄█▌', ' ▀▀  '],
+  V: ['▄  ▄', '█  █▌', '█  █▌', ' █▌█ ', ' ▀▀  '],
+  W: ['▄   ▄', '█   █', '█ █ █', '██▀██', '▀   ▀'],
+  X: ['▄  ▄', ' █▌█ ', ' ██  ', ' █▌█ ', '▀  ▀ '],
+  Y: ['▄  ▄', ' █▌█ ', ' ██  ', ' █▌  ', ' ▀   '],
+  Z: ['▄▄▄▄', '  █▌ ', ' █▌  ', '█▌   ', '▀▀▀▀ '],
+  ' ': ['     ', '     ', '     ', '     ', '     '],
+};
+
+// ── Outline: hollow box-drawing characters ──
+const FONT_OUTLINE: FontMap = {
+  A: ['  ╱╲  ', ' ╱  ╲ ', '╱────╲', '│    │', '╵    ╵'],
+  B: ['┌──┐ ', '│  │ ', '├──┤ ', '│  │ ', '└──┘ '],
+  C: ['┌───┐', '│    ', '│    ', '│    ', '└───┘'],
+  D: ['┌──┐ ', '│  │ ', '│  │ ', '│  │ ', '└──┘ '],
+  E: ['┌────', '│    ', '├──  ', '│    ', '└────'],
+  F: ['┌────', '│    ', '├──  ', '│    ', '╵    '],
+  G: ['┌───┐', '│    ', '│ ┌─┐', '│ └─┤', '└───┘'],
+  H: ['╷   ╷', '│   │', '├───┤', '│   │', '╵   ╵'],
+  I: ['┬───┬', '  │  ', '  │  ', '  │  ', '┴───┴'],
+  J: ['┬───┬', '   │ ', '   │ ', '└──┘ ', '     '],
+  K: ['╷  ╷ ', '│ ╱  ', '├╱   ', '│╲   ', '╵  ╲ '],
+  L: ['╷    ', '│    ', '│    ', '│    ', '└────'],
+  M: ['╷   ╷', '├╲ ╱┤', '│ ╳ │', '│   │', '╵   ╵'],
+  N: ['╷   ╷', '├╲  │', '│ ╲ │', '│  ╲│', '╵   ╵'],
+  O: ['┌───┐', '│   │', '│   │', '│   │', '└───┘'],
+  P: ['┌──┐ ', '│  │ ', '├──┘ ', '│    ', '╵    '],
+  Q: ['┌───┐', '│   │', '│ ╲ │', '│  ╲│', '└───╲'],
+  R: ['┌──┐ ', '│  │ ', '├──┘ ', '│ ╲  ', '╵  ╲ '],
+  S: ['┌───┐', '│    ', '└──┐ ', '   │ ', '└──┘ '],
+  T: ['┬───┬', '  │  ', '  │  ', '  │  ', '  ╵  '],
+  U: ['╷   ╷', '│   │', '│   │', '│   │', '└───┘'],
+  V: ['╷   ╷', '│   │', '│   │', ' ╲ ╱ ', '  V  '],
+  W: ['╷   ╷', '│   │', '│ ╱ │', '├╱ ╲┤', '╵   ╵'],
+  X: ['╲   ╱', ' ╲ ╱ ', '  X  ', ' ╱ ╲ ', '╱   ╲'],
+  Y: ['╲   ╱', ' ╲ ╱ ', '  │  ', '  │  ', '  ╵  '],
+  Z: ['┌───┐', '   ╱ ', '  ╱  ', ' ╱   ', '└───┘'],
+  ' ': ['     ', '     ', '     ', '     ', '     '],
+};
+
+// ── Slant: forward-leaning style ──
+const FONT_SLANT: FontMap = {
+  A: ['    __ ', '   /  |', '  / --|', ' / /| |', '/_/ |_|'],
+  B: [' ____ ', '|  _ \\', '| |_) |', '|  _ <', '|_| \\_\\'],
+  C: ['  ___ ', ' / __|', '| (__ ', ' \\ __|', '  |_| '],
+  D: [' ____ ', '|  _ \\', '| | | |', '| |_| |', '|____/'],
+  E: [' ____ ', '| ___|', '| _|_ ', '| |__ ', '|____|'],
+  F: [' ____ ', '| ___|', '| _|  ', '| |   ', '|_|   '],
+  G: ['  ___ ', ' / __|', '| |_  ', '| |_| |', ' \\___/'],
+  H: [' _  _ ', '| || |', '| __ |', '| || |', '|_||_|'],
+  I: [' ___ ', '|_ _|', ' | | ', ' | | ', '|___|'],
+  J: ['   __ ', '  |_ |', '   | |', '|__| |', '|___|'],
+  K: [' _  __', '| |/ /', '| . / ', '| |\\ \\', '|_| \\_\\'],
+  L: [' _    ', '| |   ', '| |   ', '| |__ ', '|____|'],
+  M: [' __  __', '|  \\/  |', '| |\\/| |', '| |  | |', '|_|  |_|'],
+  N: [' _  _ ', '| \\| |', '| .` |', '| |\\ |', '|_| \\|'],
+  O: ['  ___  ', ' / _ \\ ', '| | | |', '| |_| |', ' \\___/ '],
+  P: [' ____ ', '|  _ \\', '| |_) |', '|  __/', '|_|   '],
+  Q: ['  ___  ', ' / _ \\ ', '| | | |', '| |_| |', ' \\__\\_\\'],
+  R: [' ____ ', '|  _ \\', '| |_) |', '|  _ <', '|_| \\_\\'],
+  S: ['  ___ ', ' / __|', ' \\__ \\', ' |__) |', ' |___/'],
+  T: [' _____ ', '|_   _|', '  | |  ', '  | |  ', '  |_|  '],
+  U: [' _   _ ', '| | | |', '| | | |', '| |_| |', ' \\___/ '],
+  V: ['__   __', '\\ \\ / /', ' \\ V / ', '  \\ /  ', '  |_|  '],
+  W: ['__      __', '\\ \\    / /', ' \\ \\/\\/ / ', '  \\    /  ', '   \\__/   '],
+  X: ['__  __', '\\ \\/ /', ' >  < ', '/ /\\ \\', '/_/\\_\\'],
+  Y: ['__   __', '\\ \\ / /', ' \\ V / ', '  | |  ', '  |_|  '],
+  Z: [' _____', '|__  /', '  / / ', ' / /_ ', '/____| '],
+  ' ': ['     ', '     ', '     ', '     ', '     '],
+};
+
+// ── Double: double-line box style ──
+const FONT_DOUBLE: FontMap = {
+  A: ['  ╔╗  ', ' ╔╝╚╗ ', '╔╩══╩╗', '║    ║', '╩    ╩'],
+  B: ['╔══╗ ', '║  ║ ', '╠══╣ ', '║  ║ ', '╚══╝ '],
+  C: ['╔════', '║    ', '║    ', '║    ', '╚════'],
+  D: ['╔══╗ ', '║  ║ ', '║  ║ ', '║  ║ ', '╚══╝ '],
+  E: ['╔════', '║    ', '╠══  ', '║    ', '╚════'],
+  F: ['╔════', '║    ', '╠══  ', '║    ', '╩    '],
+  G: ['╔════', '║    ', '║ ╔═╗', '║ ╚═╣', '╚═══╝'],
+  H: ['╦   ╦', '║   ║', '╠═══╣', '║   ║', '╩   ╩'],
+  I: ['╔═══╗', '  ║  ', '  ║  ', '  ║  ', '╚═══╝'],
+  J: ['╔═══╗', '   ║ ', '   ║ ', '╚══╝ ', '     '],
+  K: ['╦  ╦ ', '║ ╔╝ ', '╠═╝  ', '║ ╚╗ ', '╩  ╚╗'],
+  L: ['╦    ', '║    ', '║    ', '║    ', '╚════'],
+  M: ['╦   ╦', '║╗ ╔║', '║ ╬ ║', '║   ║', '╩   ╩'],
+  N: ['╦   ╦', '║╗  ║', '║ ╗ ║', '║  ╗║', '╩   ╩'],
+  O: ['╔═══╗', '║   ║', '║   ║', '║   ║', '╚═══╝'],
+  P: ['╔══╗ ', '║  ║ ', '╠══╝ ', '║    ', '╩    '],
+  Q: ['╔═══╗', '║   ║', '║ ╗ ║', '║  ╚╗', '╚═══╝'],
+  R: ['╔══╗ ', '║  ║ ', '╠══╝ ', '║ ╚╗ ', '╩  ╚╗'],
+  S: ['╔════', '║    ', '╚══╗ ', '   ║ ', '═══╝ '],
+  T: ['╔═══╗', '  ║  ', '  ║  ', '  ║  ', '  ╩  '],
+  U: ['╦   ╦', '║   ║', '║   ║', '║   ║', '╚═══╝'],
+  V: ['╦   ╦', '║   ║', '║   ║', ' ╚ ╔ ', '  ╩  '],
+  W: ['╦   ╦', '║   ║', '║ ║ ║', '║╗ ╔║', '╩   ╩'],
+  X: ['╲   ╱', ' ╲ ╱ ', '  ╬  ', ' ╱ ╲ ', '╱   ╲'],
+  Y: ['╲   ╱', ' ╲ ╱ ', '  ║  ', '  ║  ', '  ╩  '],
+  Z: ['╔═══╗', '   ╔╝', '  ╔╝ ', ' ╔╝  ', '╚════'],
+  ' ': ['     ', '     ', '     ', '     ', '     '],
+};
+
+const FONTS: Record<string, FontMap> = {
+  block: FONT_BLOCK,
+  shadow: FONT_SHADOW,
+  outline: FONT_OUTLINE,
+  slant: FONT_SLANT,
+  double: FONT_DOUBLE,
+};
+
+function renderBlockText(text: string, style: string): string[] {
+  const font = FONTS[style] ?? FONT_BLOCK;
+  const chars = text.toUpperCase().split('');
+  const rows: string[] = ['', '', '', '', ''];
+  for (const ch of chars) {
+    const glyph = font[ch] ?? font[' '] ?? ['     ', '     ', '     ', '     ', '     '];
+    for (let r = 0; r < 5; r++) {
+      rows[r] += glyph[r] + ' ';
+    }
+  }
+  return rows;
+}
+
+// Rainbow colors cycling per row
+const RAINBOW = [RED, YELLOW, GREEN, CYAN, MAGENTA];
 
 type ScreenState = 'welcome' | 'login' | 'register' | 'menu' | 'who-online' | 'message-rooms' | 'profile';
 type LoginStep = 'username' | 'password' | 'error';
@@ -55,7 +238,11 @@ export function createSession(
   }
 
   function clearAndDraw(): void {
-    write(CLEAR);
+    if (getConfig().clearOnNavigate) {
+      write(CLEAR);
+    } else {
+      writeln();
+    }
     drawScreen();
   }
 
@@ -93,34 +280,29 @@ export function createSession(
   }
 
   function drawWelcome(): void {
+    const cfg = getConfig();
+    const blockLines = renderBlockText(cfg.siteName, cfg.bannerStyle);
+
     writeln();
-    writeln(`${CYAN} ---------------------------------------------------${RESET}`);
-    writeln(`${GREEN} Gemini BBS software version ${MAGENTA}${VERSION}${RESET}`);
-    writeln(`${CYAN} ---------------------------------------------------${RESET}`);
+    writeln(`${CYAN}${'═'.repeat(80)}${RESET}`);
+    writeln(`${GREEN}  Gemini BBS v${VERSION}${RESET}`);
+    writeln(`${CYAN}${'═'.repeat(80)}${RESET}`);
     writeln();
-    writeln(`${CYAN} Welcome to...${RESET}`);
+    writeln(`${WHITE}${BOLD} Welcome to...${RESET}`);
     writeln();
-    writeln(`${RED}  _____ _____ ____  __  __ ___ _   _ _   _ ____${RESET}`);
-    writeln(`${YELLOW} |_   _| ____|  _ \\|  \\/  |_ _| \\ | | | / ___|${RESET}`);
-    writeln(`${GREEN}   | | |  _| | |_) | |\\/| || ||  \\| | | \\___ \\${RESET}`);
-    writeln(`${CYAN}   | | | |___|  _ <| |  | || || |\\  | |_| |__) |${RESET}`);
-    writeln(`${BLUE}   |_| |_____|_| \\_\\_|  |_|___|_| \\_|\\___/____/${RESET}`);
-    writeln(`${MAGENTA}  ____ _____  _  _____ ___ ___  _   _${RESET}`);
-    writeln(`${RED} / ___|_   _|/ \\|_   _|_ _/ _ \\| \\ | |${RESET}`);
-    writeln(`${YELLOW} \\___ \\ | | / _ \\ | |  | | | | ||  \\| |${RESET}`);
-    writeln(`${GREEN}  ___) || |/ ___ \\| |  | | |_| || |\\  |${RESET}`);
-    writeln(`${CYAN} |____/ |_/_/   \\_\\_| |___\\___/|_| \\_|${RESET}`);
+    for (let i = 0; i < blockLines.length; i++) {
+      writeln(` ${RAINBOW[i % RAINBOW.length]}${BOLD}${blockLines[i]}${RESET}`);
+    }
     writeln();
-    writeln(`${CYAN} This site and software are currently a work in progress.${RESET}`);
-    writeln(`${CYAN} Please check back later and follow progress at${RESET}`);
-    writeln(`${CYAN} https://github.com/ThomasTheFourth/gemini-bbs${RESET}`);
+    writeln(`${YELLOW}  Sysop: ${WHITE}${BOLD}${cfg.sysopName}${RESET}`);
+    writeln(`${YELLOW}  Location: ${WHITE}${BOLD}${cfg.location}${RESET}`);
     writeln();
-    write(`${DIM} ${BOLD}${CYAN}L${RESET}${DIM}ogin or ${BOLD}${GREEN}R${RESET}${DIM}egister? ${RESET}`);
+    writeln(`${CYAN}${'═'.repeat(80)}${RESET}`);
+    writeln();
+    write(`${BOLD}${CYAN}L${RESET}${DIM}ogin or ${RESET}${BOLD}${GREEN}R${RESET}${DIM}egister? ${RESET}`);
   }
 
   function drawLogin(): void {
-    writeln(`${BOLD}${CYAN}━━━ Login ━━━${RESET}`);
-    writeln();
     if (loginStep === 'error') {
       writeln(`${RED}${loginError}${RESET}`);
       writeln();
@@ -128,14 +310,11 @@ export function createSession(
     } else if (loginStep === 'username') {
       write(`${DIM}Username: ${RESET}${CYAN}`);
     } else if (loginStep === 'password') {
-      writeln(`${DIM}Username: ${RESET}${loginUsername}`);
       write(`${DIM}Password: ${RESET}${CYAN}`);
     }
   }
 
   function drawRegister(): void {
-    writeln(`${BOLD}${GREEN}━━━ Register New Account ━━━${RESET}`);
-    writeln();
     if (registerStep === 'error') {
       writeln(`${RED}${registerError}${RESET}`);
       writeln();
@@ -143,26 +322,39 @@ export function createSession(
     } else if (registerStep === 'username') {
       write(`${DIM}Username: ${RESET}${GREEN}`);
     } else if (registerStep === 'password') {
-      writeln(`${DIM}Username: ${RESET}${registerUsername}`);
       write(`${DIM}Password: ${RESET}${GREEN}`);
     } else if (registerStep === 'confirm') {
-      writeln(`${DIM}Username: ${RESET}${registerUsername}`);
-      writeln(`${DIM}Password: ${RESET}${'*'.repeat(registerPassword.length)}`);
       write(`${DIM}Confirm:  ${RESET}${GREEN}`);
     }
   }
 
   function drawMenu(): void {
-    writeln(`${BOLD}${YELLOW}━━━ Main Menu ━━━${RESET}`);
+    const W = 78; // inner width between │ borders (80 - 2 for borders)
+    const hr = '─'.repeat(W);
+    const pad = (text: string, len: number) => {
+      // pad plain text to len, ignoring ANSI codes for length calc
+      const plain = text.replace(/\x1b\[[0-9;]*m/g, '');
+      const needed = len - plain.length;
+      return needed > 0 ? text + ' '.repeat(needed) : text;
+    };
+    const row = (content: string) => {
+      writeln(`${CYAN}│${RESET}${pad(content, W)}${CYAN}│${RESET}`);
+    };
+
+    writeln(`${CYAN}┌${hr}┐${RESET}`);
+    row(`  ${BOLD}${YELLOW}${getConfig().siteName}${RESET}  ${DIM}::${RESET}  ${BOLD}Main Menu${RESET}`);
+    writeln(`${CYAN}├${hr}┤${RESET}`);
+    row('');
+    row(`   ${BOLD}${YELLOW}[${RESET}${BOLD}W${YELLOW}]${RESET} Who's Online`);
+    row(`   ${BOLD}${YELLOW}[${RESET}${BOLD}M${YELLOW}]${RESET} Message Rooms`);
+    row(`   ${BOLD}${YELLOW}[${RESET}${BOLD}P${YELLOW}]${RESET} User Profile`);
+    row(`   ${BOLD}${YELLOW}[${RESET}${BOLD}G${YELLOW}]${RESET} Goodbye (Logoff)`);
+    row('');
+    writeln(`${CYAN}├${hr}┤${RESET}`);
+    row(`  ${DIM}User: ${RESET}${BOLD}${CYAN}${username}${RESET}`)
+    writeln(`${CYAN}└${hr}┘${RESET}`);
     writeln();
-    writeln(`${DIM}Welcome, ${BOLD}${CYAN}${username}${RESET}${DIM}!${RESET}`);
-    writeln();
-    writeln(`  ${BOLD}${YELLOW}1${RESET} ─ Who's Online`);
-    writeln(`  ${BOLD}${YELLOW}2${RESET} ─ Message Rooms`);
-    writeln(`  ${BOLD}${YELLOW}3${RESET} ─ User Profile`);
-    writeln(`  ${BOLD}${YELLOW}4${RESET} ─ Logout`);
-    writeln();
-    write(`${DIM}Choose an option: ${RESET}`);
+    write(` ${DIM}Command: ${RESET}`);
   }
 
   function drawWhoOnline(): void {
@@ -238,6 +430,12 @@ export function createSession(
       // Ignore LF (telnet sends \r\n)
       if (byte === 0x0a) continue;
 
+      // Ctrl+C — disconnect
+      if (byte === 0x03) {
+        callbacks.onDisconnect();
+        return;
+      }
+
       // Enter
       if (byte === 0x0d) {
         handleSubmit();
@@ -279,16 +477,17 @@ export function createSession(
         }
 
         if (screen === 'menu') {
-          if (char === '1') {
+          const key = char.toLowerCase();
+          if (key === 'w') {
             screen = 'who-online';
             clearAndDraw();
-          } else if (char === '2') {
+          } else if (key === 'm') {
             screen = 'message-rooms';
             clearAndDraw();
-          } else if (char === '3') {
+          } else if (key === 'p') {
             screen = 'profile';
             clearAndDraw();
-          } else if (char === '4') {
+          } else if (key === 'g') {
             callbacks.onDisconnect();
           }
           continue;
@@ -297,28 +496,6 @@ export function createSession(
         // "Press any key" screens
         if (screen === 'who-online' || screen === 'message-rooms' || screen === 'profile') {
           screen = 'menu';
-          clearAndDraw();
-          continue;
-        }
-
-        // Error states
-        if (screen === 'login' && loginStep === 'error') {
-          screen = 'login';
-          loginStep = 'username';
-          loginUsername = '';
-          loginError = '';
-          inputBuffer = '';
-          clearAndDraw();
-          continue;
-        }
-
-        if (screen === 'register' && registerStep === 'error') {
-          screen = 'register';
-          registerStep = 'username';
-          registerUsername = '';
-          registerPassword = '';
-          registerError = '';
-          inputBuffer = '';
           clearAndDraw();
           continue;
         }
@@ -339,7 +516,8 @@ export function createSession(
         loginUsername = value;
         loginStep = 'password';
         inputBuffer = '';
-        clearAndDraw();
+        writeln();
+        drawLogin();
       } else if (loginStep === 'password') {
         const result = authenticateUser(loginUsername, value);
         inputBuffer = '';
@@ -349,9 +527,12 @@ export function createSession(
           screen = 'menu';
           clearAndDraw();
         } else {
-          loginError = result.error ?? 'Login failed';
-          loginStep = 'error';
-          clearAndDraw();
+          writeln();
+          writeln(`${RED}${result.error ?? 'Login failed'}${RESET}`);
+          writeln();
+          screen = 'welcome';
+          drawWelcome();
+          return;
         }
       }
     }
@@ -362,25 +543,31 @@ export function createSession(
         registerUsername = value;
         registerStep = 'password';
         inputBuffer = '';
-        clearAndDraw();
+        writeln();
+        drawRegister();
       } else if (registerStep === 'password') {
         if (value.length < 4) {
-          registerError = 'Password must be at least 4 characters';
-          registerStep = 'error';
           inputBuffer = '';
-          clearAndDraw();
+          writeln();
+          writeln(`${RED}Password must be at least 4 characters${RESET}`);
+          writeln();
+          screen = 'welcome';
+          drawWelcome();
           return;
         }
         registerPassword = value;
         registerStep = 'confirm';
         inputBuffer = '';
-        clearAndDraw();
+        writeln();
+        drawRegister();
       } else if (registerStep === 'confirm') {
         inputBuffer = '';
         if (value !== registerPassword) {
-          registerError = 'Passwords do not match';
-          registerStep = 'error';
-          clearAndDraw();
+          writeln();
+          writeln(`${RED}Passwords do not match${RESET}`);
+          writeln();
+          screen = 'welcome';
+          drawWelcome();
           return;
         }
         const result = createUser(registerUsername, value);
@@ -390,9 +577,11 @@ export function createSession(
           screen = 'menu';
           clearAndDraw();
         } else {
-          registerError = result.error ?? 'Registration failed';
-          registerStep = 'error';
-          clearAndDraw();
+          writeln();
+          writeln(`${RED}${result.error ?? 'Registration failed'}${RESET}`);
+          writeln();
+          screen = 'welcome';
+          drawWelcome();
         }
       }
     }
